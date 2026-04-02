@@ -15,4 +15,4 @@ _log "Python found at location: ${PYTHON_PATH}"
 PYTHON_VERSION=$("${PYTHON_PATH}" --version)
 _log "Python version: ${PYTHON_VERSION}"
 
-"${PYTHON_PATH}" "${SCRIPT_DIR}"/acme_dns.py $1 $2 $3 $4 >> "$LOGFILE" 2>&1
+"${PYTHON_PATH}" "${SCRIPT_DIR}"/acme_hetzner_dns.py $1 $2 $3 $4 >> "$LOGFILE" 2>&1
