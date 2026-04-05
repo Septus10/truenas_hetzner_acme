@@ -4,6 +4,7 @@ import requests
 import sys
 import logging
 import os
+import re
 
 API = "https://api.hetzner.cloud/v1"
 HEADERS = {}
@@ -15,6 +16,8 @@ def get_zone_id(domain):
         if domain.endswith(zone["name"]):
             return zone["id"]
     
+    logging.error(f"Could not find zone for {domain}")
+
     return None
 
 
@@ -22,7 +25,6 @@ def add_record(domain, name, value):
     zone_id = get_zone_id(domain)
 
     if not zone_id:
-        logging.error("zone not found")
         sys.exit(1)
 
     data = {
@@ -53,7 +55,7 @@ def remove_record(domain, name, value):
 
     error = get_response.get("error")
     if error:
-        logging.error(f"Error trying to find rrset {name}: {error['code']} {error['message']}")
+        logging.info(f"Unable to find rrset {name} ({error['message']}), in which case there is nothing to remove")
         sys.exit(1)
 
     rrset = get_response.get("rrset")
@@ -104,21 +106,36 @@ if __name__ == "__main__":
 
     # map command-line arguments to variables
     action = sys.argv[1]
-    domain = sys.argv[2]
+    # With hetzner, we only care about the top level domain for dns-01 challenges
+    # Do note, this regex will **NOT** work with country-code top-level domains such as "co.uk"
+    domain = re.search(r"([A-Za-z0-9][A-Za-z0-9\-]{0,62}[A-Za-z0-9]\.)*(?P<SLD>[A-Za-z0-9][A-Za-z0-9\-]{0,62}[A-Za-z0-9]\.[A-Za-z]+)", sys.argv[2]).group("SLD")
     # TrueNAS gives the entry name to us in the format of "_acme-challenge.domain.com", 
     # But hetzner expects only _acme-challenge as it appends .domain.com automatically when adding the DNS entry
-    name = sys.argv[3][0:sys.argv[3].find('.')] 
+    # Basically take everything up until the second level domain
+    name = sys.argv[3][0:sys.argv[3].find(domain)-1]
     value = sys.argv[4]
 
     logging.info(f"Starting script with args:\n\tAction: {action}\n\tDomain: {domain}\n\tName: {name}\n\tValue: {value}")
 
     # get API key from environment variables
-    api_key = os.getenv("HETZNER_CLOUD_API_KEY")
+    api_key : str = None
+    if num_args >= 6:
+        api_key = sys.argv[5]
+
+    if api_key == None:
+        api_key = os.getenv("HETZNER_CLOUD_API_KEY")
+        if api_key == None:
+            logging.error("No hetzner cloud API key was provided, either add it as an environment variable or configure it in the bash script.")
+            sys.exit(1)       
+    
+    if len(api_key) != 64:
+        logging.error("Hetzner cloud API key is of invalid size, please check your API key")
+        sys.exit(1)
+
     HEADERS = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
-
     if action == "set":
         add_record(domain, name, value)
     elif action == "unset":
