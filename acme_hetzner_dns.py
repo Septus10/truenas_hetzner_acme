@@ -117,7 +117,7 @@ if __name__ == "__main__":
 
     # get API key from environment variables
     api_key : str = os.getenv("HETZNER_CLOUD_API_KEY")
-    if len(api_key) != 64:
+    if api_key == None:
         logging.error("The HETZNER_CLOUD_API_KEY environment variable does not contain a correct hetzner cloud api key. Please make sure it is configured correctly on your system.")
         sys.exit(1)
 
