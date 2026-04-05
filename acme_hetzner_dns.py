@@ -55,7 +55,7 @@ def remove_record(domain, name, value):
 
     error = get_response.get("error")
     if error:
-        logging.error(f"Error trying to find rrset {name}: {error['code']} {error['message']}")
+        logging.info(f"Unable to find rrset {name} ({error['message']}), in which case there is nothing to remove")
         sys.exit(1)
 
     rrset = get_response.get("rrset")
@@ -116,9 +116,18 @@ if __name__ == "__main__":
     logging.info(f"Starting script with args:\n\tAction: {action}\n\tDomain: {domain}\n\tName: {name}\n\tValue: {value}")
 
     # get API key from environment variables
-    api_key : str = os.getenv("HETZNER_CLOUD_API_KEY")
+    api_key : str = None
+    if num_args >= 6:
+        api_key = sys.argv[5]
+
     if api_key == None:
-        logging.error("The HETZNER_CLOUD_API_KEY environment variable does not contain a correct hetzner cloud api key. Please make sure it is configured correctly on your system.")
+        api_key = os.getenv("HETZNER_CLOUD_API_KEY")
+        if api_key == None:
+            logging.error("No hetzner cloud API key was provided, either add it as an environment variable or configure it in the bash script.")
+            sys.exit(1)       
+    
+    if len(api_key) != 64:
+        logging.error("Hetzner cloud API key is of invalid size, please check your API key")
         sys.exit(1)
 
     HEADERS = {
