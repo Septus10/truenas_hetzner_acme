@@ -116,16 +116,15 @@ if __name__ == "__main__":
     logging.info(f"Starting script with args:\n\tAction: {action}\n\tDomain: {domain}\n\tName: {name}\n\tValue: {value}")
 
     # get API key from environment variables
-    api_key = os.getenv("HETZNER_CLOUD_API_KEY")
-    if not api_key:
-        logging.error("Unable to find HETZNER_CLOUD_API_KEY environment variable. Please make sure it is configured on your system.")
+    api_key : str = os.getenv("HETZNER_CLOUD_API_KEY")
+    if len(api_key) != 64:
+        logging.error("The HETZNER_CLOUD_API_KEY environment variable does not contain a correct hetzner cloud api key. Please make sure it is configured correctly on your system.")
         sys.exit(1)
 
     HEADERS = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
-
     if action == "set":
         add_record(domain, name, value)
     elif action == "unset":
