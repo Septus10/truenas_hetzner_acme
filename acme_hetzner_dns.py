@@ -106,11 +106,13 @@ if __name__ == "__main__":
 
     # map command-line arguments to variables
     action = sys.argv[1]
-    #we honestly only care about the top level domain for dns-01 challenges
+    # With hetzner, we only care about the top level domain for dns-01 challenges
+    # Do note, this regex will **NOT** work with country-code top-level domains such as "co.uk"
     domain = re.search(r"([A-Za-z0-9][A-Za-z0-9\-]{0,62}[A-Za-z0-9]\.)*(?P<SLD>[A-Za-z0-9][A-Za-z0-9\-]{0,62}[A-Za-z0-9]\.[A-Za-z]+)", sys.argv[2]).group("SLD")
     # TrueNAS gives the entry name to us in the format of "_acme-challenge.domain.com", 
     # But hetzner expects only _acme-challenge as it appends .domain.com automatically when adding the DNS entry
-    name = sys.argv[3][0:sys.argv[3].find('.')] 
+    # Basically take everything up until the second level domain
+    name = sys.argv[3][0:sys.argv[3].find(domain)-1]
     value = sys.argv[4]
 
     logging.info(f"Starting script with args:\n\tAction: {action}\n\tDomain: {domain}\n\tName: {name}\n\tValue: {value}")
