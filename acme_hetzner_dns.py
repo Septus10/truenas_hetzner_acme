@@ -4,6 +4,7 @@ import requests
 import sys
 import logging
 import os
+import re
 
 API = "https://api.hetzner.cloud/v1"
 HEADERS = {}
@@ -15,6 +16,8 @@ def get_zone_id(domain):
         if domain.endswith(zone["name"]):
             return zone["id"]
     
+    logging.error(f"Could not find zone for {domain}")
+
     return None
 
 
@@ -22,7 +25,6 @@ def add_record(domain, name, value):
     zone_id = get_zone_id(domain)
 
     if not zone_id:
-        logging.error("zone not found")
         sys.exit(1)
 
     data = {
@@ -104,7 +106,8 @@ if __name__ == "__main__":
 
     # map command-line arguments to variables
     action = sys.argv[1]
-    domain = sys.argv[2]
+    #we honestly only care about the top level domain for dns-01 challenges
+    domain = re.search(r"([A-Za-z0-9][A-Za-z0-9\-]{0,62}[A-Za-z0-9]\.)*(?P<SLD>[A-Za-z0-9][A-Za-z0-9\-]{0,62}[A-Za-z0-9]\.[A-Za-z]+)", sys.argv[2]).group("SLD")
     # TrueNAS gives the entry name to us in the format of "_acme-challenge.domain.com", 
     # But hetzner expects only _acme-challenge as it appends .domain.com automatically when adding the DNS entry
     name = sys.argv[3][0:sys.argv[3].find('.')] 
@@ -114,6 +117,10 @@ if __name__ == "__main__":
 
     # get API key from environment variables
     api_key = os.getenv("HETZNER_CLOUD_API_KEY")
+    if not api_key:
+        logging.error("Unable to find HETZNER_CLOUD_API_KEY environment variable. Please make sure it is configured on your system.")
+        sys.exit(1)
+
     HEADERS = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
